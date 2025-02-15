@@ -1,10 +1,23 @@
-from pydantic import BaseModel, BaseSettings, ValidationError
+import os
+from typing import Literal
+
+from dotenv import load_dotenv
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 
 class Config(BaseSettings):
-    openai_api_key: str
-    anthropic_api_key: str
-    model_provider: str  # "openai" or "anthropic"
+    """Application configuration using pydantic-settings"""
+
+    OPENAI_API_KEY: str = Field(..., description="OpenAI API key")
+    ANTHROPIC_API_KEY: str = Field(..., description="Anthropic API key")
+    MODEL_PROVIDER: Literal["openai", "anthropic"] = Field(
+        ..., description="Model provider (openai or anthropic)"
+    )
 
     class Config:
-        env_file = ".env"
+        env_file = ".env.example" if os.getenv("TESTING") == "true" else ".env"
+
+
+# Explicitly load the correct dotenv file
+load_dotenv(Config.Config.env_file)

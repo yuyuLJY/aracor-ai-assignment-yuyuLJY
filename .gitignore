@@ -67,3 +67,4 @@ ruff_cache/
 
 # test
 tests/test_files/
+/src/main.py
