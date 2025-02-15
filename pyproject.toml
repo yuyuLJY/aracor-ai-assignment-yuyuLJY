@@ -1,0 +1,24 @@
+[project]
+name = "aracor-ai-assignment-yuyuljy"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "yuyuLJY",email = "jiayu1922@163.com"}
+]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.13"
+pydantic = "^2.0"
+langchain = "^0.1.0" 
+
+[poetry.group.dev.dependencies]
+pytest = "^7.0"  # Testing framework
+black = "^24.0"  # Code formatter
+isort = "^5.10"  # Import sorter
+pylint = "^3.0"  # Linter
+mypy = "^1.0"  # Static type checker
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
