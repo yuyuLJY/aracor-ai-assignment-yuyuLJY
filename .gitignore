@@ -64,3 +64,6 @@ ruff_cache/
 *.swp
 *.swo
 *.bak
+
+# test
+tests/test_files/

@@ -17,6 +17,7 @@ black = "^24.0"  # Code formatter
 isort = "^5.10"  # Import sorter
 pylint = "^3.0"  # Linter
 mypy = "^1.0"  # Static type checker
+pytest-cov = "^6.0.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
