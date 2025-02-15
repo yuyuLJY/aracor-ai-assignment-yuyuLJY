@@ -31,6 +31,7 @@ class SummaryGenerator:
         return splitter.split_text(text)
 
     def get_prompt(self, summary_type: str) -> str:
+        # can create PromptManager
         templates = {
             "brief": """Provide a short and concise \
                     summary of the following text: {text}""",
@@ -47,7 +48,16 @@ class SummaryGenerator:
 
     def generate_summary(self, text: str, summary_type: str = "brief") -> str:
 
-        chunks = self.chunk_text(text)
+        try:
+            chunks = self.chunk_text(text)
+        except Exception as e:
+            logger.error("Error while chunking text: %s", e)
+            return APIResponse(
+                success=False,
+                code=500,
+                message="Error occurred while chunking text: %s" % e,
+                data=None,
+            )
         summary_results = []
 
         for chunk in chunks:

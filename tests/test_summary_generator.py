@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import MagicMock
 from src.services.model_manager import ModelManager
 from src.services.summary import SummaryGenerator
-from src.models.schemas import APIResponse, SummaryResponse
+from src.models.schemas import APIResponse
 
 @pytest.fixture
 def mock_model_manager():
