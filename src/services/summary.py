@@ -16,38 +16,12 @@ logger = setup_logger()
 
 from src.services.model_manager import ModelManager
 
-
-class SummaryPromptManager:
-    TEMPLATES = {
-        "brief": "Provide a short and concise summary of the following text: {text}",
-        "detailed": "Provide a detailed and comprehensive summary of the following text: {text}",
-        "bullet points": "Summarize the following text in bullet points: {text}",
-        "technical": "Provide a technical summary focusing on key concepts and terminologies: {text}",
-        "layman": "Explain the following text in a simple manner suitable for a general audience: {text}",
-    }
-
-    def get_prompt(cls, summary_type: str, text: str) -> str:
-        return cls.TEMPLATES.get(summary_type, cls.TEMPLATES["brief"]).format(text=text)
-
-
 class SummaryGenerator:
     def __init__(self, model_manager: ModelManager):
         self.model_manager = model_manager
 
-    def get_chunk_size(self, text: str) -> str:
-        language, _ = langid.classify(text)
-        language_settings = {
-            "en": (1000, 200),  # English: Large chunks
-            "zh": (500, 100),  # Chinese: Small chunks
-            "ar": (600, 150),  # Arabic: Medium chunks
-            "fr": (800, 200),  # French: Medium chunks
-            "de": (800, 200),  # German: Medium chunks
-            "ja": (400, 100),  # Japanese: Small chunks
-        }
-        return language_settings.get(language, (600, 150))
-
     def chunk_text(self, text: str) -> List[str]:
-        chunk_size, chunk_overlap = self.get_chunk_size(text)
+        chunk_size, chunk_overlap = 1000, 100
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
@@ -56,14 +30,26 @@ class SummaryGenerator:
         return splitter.split_text(text)
 
     def generate_summary(self, text: str, summary_type: str = "brief") -> str:
+        TEMPLATES = {
+                "brief": "Provide a short and concise summary of the following text: {text}",
+                "detailed": "Provide a detailed and comprehensive summary of the following text: {text}",
+                "bullet points": "Summarize the following text in bullet points: {text}",
+                "technical": "Provide a technical summary focusing on key concepts and terminologies: {text}",
+                "layman": "Explain the following text in a simple manner suitable for a general audience: {text}",
+            }
+
         chunks = self.chunk_text(text)
         summary_results = []
 
         for chunk in chunks:
 
-            prompt = SummaryPromptManager.get_prompt(summary_type, chunk)
+            prompt = TEMPLATES.get(summary_type, "").format(text=chunk)
+            print(prompt)
+
             try:
-                response = self.model_manager.generate_response(prompt)
+                # TODO oepnAI token expire
+                # response = self.model_manager.generate_response(prompt)
+                response = "This is the summarization"
                 summary_results.append(response)
             except Exception as e:
                 logger.error(f"Error generating summary: {e}")

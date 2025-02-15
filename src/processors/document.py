@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from langchain.document_loaders import Docx2txtLoader, PyPDFLoader, TextLoader
+from langchain_community.document_loaders import Docx2txtLoader, PyPDFLoader, TextLoader
 from pydantic import ValidationError
 
 from src.models.schemas import APIResponse, DocumentProcessorInput, DocumentResponse
@@ -27,7 +27,8 @@ class DocumentProcessor:
         # If validation failed, return the stored response
         if self.validation_failed:
             return self.response
-
+        
+        print("!!", self.file_path)
         ext = self.file_path.suffix.lower()
         loader_map = {".pdf": PyPDFLoader, ".txt": TextLoader, ".docx": Docx2txtLoader}
 

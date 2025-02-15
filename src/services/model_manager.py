@@ -1,4 +1,6 @@
-from langchain.llms import Anthropic, OpenAI
+from langchain_openai import ChatOpenAI
+from langchain_anthropic import ChatAnthropic
+
 from tenacity import retry, stop_after_attempt, wait_fixed
 
 from src.utils.my_logging import setup_logger
@@ -12,15 +14,14 @@ config = Config()
 
 class ModelManager:
     def __init__(self):
-        self.model_provider = config.model_provider.lower()
+        self.model_provider = config.MODEL_PROVIDER.lower()
         if self.model_provider == "openai":
-            self.model = OpenAI(api_key=config.openai_api_key)
+            self.model = ChatOpenAI(model = 'gpt-3.5-turbo', api_key=config.OPENAI_API_KEY)
         elif self.model_provider == "anthropic":
-            self.model = Anthropic(api_key=config.anthropic_api_key)
+            self.model = ChatAnthropic(api_key=config.MODEL_PROVIDER)
         else:
             raise ValueError("Invalid model provider")
 
-    @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
     def generate_response(self, prompt: str) -> str:
         try:
             return self.model.predict(prompt)
