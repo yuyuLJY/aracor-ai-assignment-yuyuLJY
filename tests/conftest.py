@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 from pydantic import ValidationError
 
-from src.config.settings import Config  # Import your updated Config class
+# from src.config.settings import Config  # Import your updated Config class
 
 # Ensure tests use .env.example
 # @pytest.fixture(scope="session", autouse=True)

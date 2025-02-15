@@ -13,28 +13,29 @@ class DocumentProcessor:
     def __init__(self, file_path: str):
         """Initialize with validated file path."""
         try:
-            validated_data = DocumentProcessorInput(file_path=file_path)
-            self.file_path = Path(validated_data.file_path)
+            DocumentProcessorInput(file_path=file_path)
+            self.file_path = Path(file_path)
             self.validation_failed = False
-        except ValidationError as e:
-            logger.error(f"Validation Error: {e}")
+        except ValidationError as err:
+            logger.error("Validation Error: %s", err)
             self.validation_failed = True
-            error_msg = e.errors()[0]["msg"]
-            self.response = APIResponse(success=False, message=error_msg, data=None)
+            self.response = APIResponse(
+                success=False, code=400, message=err.errors()[0]["msg"], data=None
+            )
 
     def extract_text(self) -> APIResponse:
         """Extract text from the document and return structured response."""
         # If validation failed, return the stored response
         if self.validation_failed:
             return self.response
-        
+
         print("!!", self.file_path)
         ext = self.file_path.suffix.lower()
         loader_map = {".pdf": PyPDFLoader, ".txt": TextLoader, ".docx": Docx2txtLoader}
 
         if ext not in loader_map:
             return APIResponse(
-                success=False, message="Unsupported file type", data=None
+                success=False, code=400, message="Unsupported file type", data=None
             )
 
         try:
@@ -44,16 +45,16 @@ class DocumentProcessor:
 
             return APIResponse(
                 success=True,
+                code=200,
                 message="Text extracted successfully",
                 data=DocumentResponse(
-                    status="success",
                     file_path=str(self.file_path),
                     file_type=ext[1:],  # Remove the dot
                     content=extracted_text,
                 ),
             )
-        except Exception as e:
-            logger.error(f"Error processing document: {e}")
+        except Exception as err:
+            logger.error("Error processing document: %s", err)
             return APIResponse(
-                success=False, message="Error processing document", data=str(e)
+                success=False, code=500, message="Error processing document", data=None
             )

@@ -4,7 +4,7 @@ import os
 
 def setup_logger(
     name: str = "app_logger", log_file: str = "logs/app.log", level: int = logging.INFO
-):
+) -> logging.Logger:
     """
     Configures and returns a logger instance.
 

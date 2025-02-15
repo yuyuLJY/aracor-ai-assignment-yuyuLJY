@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, field_validator
 
 class APIResponse(BaseModel):
     success: bool
+    code: int
     message: str
     data: Optional[Any] = None
 
@@ -23,14 +24,17 @@ class DocumentProcessorInput(BaseModel):
             raise ValueError(
                 "Unsupported file format. Only PDF, TXT, and DOCX are allowed."
             )
-        return value
 
 
 class DocumentResponse(BaseModel):
-    status: Literal["success", "error"]
+    # status: Literal["success", "error"]
     file_path: str
-    file_type: Literal["pdf", "txt", "docx"]
+    file_type: str
     content: Optional[str] = Field(
         None, description="Extracted text content from the document"
     )
-    message: Optional[str] = None
+
+
+class SummaryResponse(BaseModel):
+    status: Literal["success", "error"]
+    summary: str
