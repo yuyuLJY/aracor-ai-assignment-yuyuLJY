@@ -1,0 +1,66 @@
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.dll
+
+# Poetry virtual environment (if outside project directory)
+.venv/
+poetry.lock
+
+# Distribution / Packaging
+build/
+dist/
+*.egg-info/
+*.whl
+
+# Logs and Debugging Files
+*.log
+*.out
+
+# IDE / Editor settings
+.vscode/
+.idea/
+*.sublime-workspace
+
+# MacOS system files
+.DS_Store
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Environment variables & Secrets
+.env
+.env.local
+.env.production
+.env.test
+
+# Generated documentation
+docs/_build/
+
+# Test coverage and pytest cache
+.coverage
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+
+# MyPy type checking
+.mypy_cache/
+
+# Pyre type checker
+.pyre/
+
+# Linter reports
+.pylint.d/
+ruff_cache/
+
+# SQLite database files (if used)
+*.sqlite3
+*.db
+
+# Temporary files
+*.swp
+*.swo
+*.bak

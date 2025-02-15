@@ -2,17 +2,16 @@
 name = "aracor-ai-assignment-yuyuljy"
 version = "0.1.0"
 description = ""
-authors = [
-    {name = "yuyuLJY",email = "jiayu1922@163.com"}
-]
+authors = [{name = "yuyuLJY", email = "jiayu1922@163.com"}]
 readme = "README.md"
+requires-python = ">=3.11,<3.13"
 
-[tool.poetry.dependencies]
-python = ">=3.11,<3.13"
-pydantic = "^2.0"
-langchain = "^0.1.0" 
+dependencies = [
+    "pydantic>=2.0",
+    "langchain>=0.1.0"
+]
 
-[poetry.group.dev.dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "^7.0"  # Testing framework
 black = "^24.0"  # Code formatter
 isort = "^5.10"  # Import sorter
