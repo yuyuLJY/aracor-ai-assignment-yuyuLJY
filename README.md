@@ -95,7 +95,7 @@ text_content = processor.extract_text()
 
 if text_content.data is not None:
     text = text_content.data.content
-    model_manager = ModelManager()
+    model_manager = ModelManager().get_model('openai')
     summarizer = SummaryGenerator(model_manager)
     summary = summarizer.generate_summary(text, summary_type="bullet points")
     print("Generated Summary:", summary)

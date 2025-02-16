@@ -8,7 +8,6 @@ load_dotenv()
 class ConfigSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
     # Model Configuration
-    MODEL_PROVIDER: str
     OPENAI_MODEL: str = "gpt-3.5-turbo"
     ANTHROPIC_MODEL: str = "claude-3-opus-20240229"
     OPENAI_API_KEY: SecretStr
@@ -29,12 +28,4 @@ class ConfigSettings(BaseSettings):
         """Ensure API keys are not empty."""
         if not value or value.strip() == "":
             raise ValueError("API key cannot be empty")
-        return value
-
-    @field_validator("MODEL_PROVIDER", mode="before")
-    @classmethod
-    def validate_required_fields(cls, value: str) -> str:
-        """Ensure required fields are present and not empty."""
-        if value is None or not isinstance(value, str) or value.strip() == "":
-            raise ValueError("MODEL_PROVIDER cannot be empty or missing")
         return value
