@@ -55,7 +55,7 @@ class OpenAIModel(Model):
 
     @retry(
         stop=stop_after_attempt(3),
-        wait=wait_fixed(2),
+        wait=wait_fixed(0.1),
         retry=retry_if_exception_type(Exception),
     )
     def generate_response(self, prompt: str) -> str:

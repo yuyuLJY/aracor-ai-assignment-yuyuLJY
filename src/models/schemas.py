@@ -1,14 +1,7 @@
 from pathlib import Path
-from typing import Any, Literal, Optional
+from typing import Literal, Optional, Union
 
 from pydantic import BaseModel, Field, field_validator
-
-
-class APIResponse(BaseModel):
-    success: bool
-    code: int
-    message: str
-    data: Optional[Any] = None
 
 
 class DocumentProcessorInput(BaseModel):
@@ -24,6 +17,7 @@ class DocumentProcessorInput(BaseModel):
             raise ValueError(
                 "Unsupported file format. Only PDF, TXT, and DOCX are allowed."
             )
+        return value
 
 
 class DocumentResponse(BaseModel):
@@ -36,5 +30,12 @@ class DocumentResponse(BaseModel):
 
 
 class SummaryResponse(BaseModel):
-    status: Literal["success", "error"]
-    summary: str
+    status: Literal["success", "error", "partial"]
+    summary: Optional[str] = None
+
+
+class APIResponse(BaseModel):
+    success: bool
+    code: int
+    message: str
+    data: Optional[Union[DocumentResponse, SummaryResponse]] = None

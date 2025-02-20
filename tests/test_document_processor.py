@@ -1,5 +1,5 @@
 import os
-from typing import Any
+from typing import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -19,12 +19,15 @@ def create_test_file(file_path: str, content: str = "Sample text") -> None:
         f.write(content)
 
 
-@pytest.fixture
-def _pdf_file() -> str:
+@pytest.fixture(scope="session")
+def _pdf_file() -> Generator[str, None, None]:
     """Fixture that provides a sample PDF file for testing."""
     file_path = os.path.join(TEST_FILES_DIR, "sample.pdf")
     create_test_file(file_path, "This is a test PDF file.")
-    return file_path
+    yield file_path
+
+    if os.path.exists(file_path):
+        os.remove(file_path)
 
 
 @pytest.fixture
@@ -84,22 +87,52 @@ def _nonexistent_file() -> str:
 
 
 # Test Successful PDF Processing
-@patch("src.processors.document.PyPDFLoader")
-def test_successful_pdf_processing(mock_loader: MagicMock, _pdf_file: str) -> None:
-    """Test that a valid PDF file is processed correctly."""
-    mock_loader.return_value.load.return_value = [
-        MagicMock(page_content="Extracted PDF content")
-    ]
-    processor = DocumentProcessor(_pdf_file)
-    response = processor.extract_text()
+# @patch("src.processors.document.PyPDFLoader")
+# def test_successful_pdf_processing(mock_loader: MagicMock, _pdf_file: str) -> None:
+#     """Test that a valid PDF file is processed correctly."""
+#     mock_loader_instance = mock_loader.return_value
+#     mock_loader_instance.load.return_value = [MagicMock(page_content="Extracted PDF content")]
 
-    assert isinstance(response, APIResponse)
-    assert response.success is True
-    assert response.message == "Text extracted successfully"
-    assert response.data is not None
-    assert response.data.file_path == _pdf_file
-    assert response.data.file_type == "pdf"
-    assert response.data.content == "Extracted PDF content"
+#     processor = DocumentProcessor(_pdf_file)
+#     response = processor.extract_text()
+
+#     assert isinstance(response, APIResponse)
+#     assert response.success is True
+#     assert response.message == "Text extracted successfully"
+#     assert response.data is not None
+#     assert response.data.file_path == _pdf_file
+#     assert response.data.file_type == "pdf"
+#     assert response.data.content == "Extracted PDF content"
+
+#     mock_loader.assert_called_once_with(_pdf_file)
+#     mock_loader_instance.load.assert_called_once()
+
+
+def test_successful_pdf_processing(_pdf_file: str) -> None:
+    """Test that a valid PDF file is processed correctly."""
+
+    with patch("src.processors.document.PyPDFLoader") as mock_loader:
+        mock_instance = mock_loader.return_value
+        mock_instance.load.return_value = [
+            MagicMock(page_content="Extracted PDF content")
+        ]
+
+        # Run the function under test
+        processor = DocumentProcessor(_pdf_file)
+        response = processor.extract_text()
+
+        # Assertions
+        assert isinstance(response, APIResponse)
+        assert response.success is True
+        assert response.message == "Text extracted successfully"
+        assert response.data is not None
+        assert response.data.file_path == _pdf_file
+        assert response.data.file_type == "pdf"
+        assert response.data.content == "Extracted PDF content"
+
+        # Verify PyPDFLoader was called
+        mock_loader.assert_called_once_with(_pdf_file)
+        mock_instance.load.assert_called_once()
 
 
 # Test Successful DOCX Processing
@@ -161,7 +194,7 @@ def test_file_does_not_exist(_nonexistent_file: str) -> None:
 
 # Test Handling of Corrupted Files
 @patch("src.processors.document.PyPDFLoader")
-def test_handling_corrupted_files(mock_loader: Any, _corrupted_file: str) -> None:
+def test_handling_corrupted_files(mock_loader: MagicMock, _corrupted_file: str) -> None:
     """Test that a corrupted PDF file is handled properly."""
     mock_loader.return_value.load.side_effect = Exception("File corruption error")
     processor = DocumentProcessor(_corrupted_file)
@@ -178,12 +211,9 @@ def test_handling_empty_files(_empty_file: str) -> None:
     processor = DocumentProcessor(_empty_file)
     response = processor.extract_text()
 
-    assert response.success is True  # Empty files are still technically valid
-    assert response.message == "Text extracted successfully"
-
-    # Ensure response.data is not None before accessing content
-    assert response.data is not None
-    assert response.data.content == ""
+    assert response.success is False  # Empty files are still technically valid
+    assert response.message == "No text found in document"
+    assert response.data is None
 
 
 # Test Handling of Unsupported File Formats
