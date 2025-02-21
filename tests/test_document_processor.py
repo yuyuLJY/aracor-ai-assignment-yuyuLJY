@@ -31,11 +31,14 @@ def _pdf_file() -> Generator[str, None, None]:
 
 
 @pytest.fixture
-def _docx_file() -> str:
+def _docx_file() -> Generator[str, None, None]:
     """Fixture that provides a sample DOCX file for testing."""
     file_path = os.path.join(TEST_FILES_DIR, "sample.docx")
     create_test_file(file_path, "This is a test DOCX file.")
-    return file_path
+    yield file_path
+
+    if os.path.exists(file_path):
+        os.remove(file_path)
 
 
 @pytest.fixture

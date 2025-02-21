@@ -67,7 +67,6 @@ class SummaryGenerator:
 
         for chunk in chunks:
             prompt = self.get_prompt(summary_type).format(text=chunk)
-            print(prompt)
             try:
                 response = self.model_manager.generate_response(prompt)
                 # response = f"####### This is the summarization {chunk}"
@@ -84,13 +83,13 @@ class SummaryGenerator:
                 logger.error("Error generating summary: %s", e)
                 errors.append(f"Timeout error: {e}")
 
-        print("## ", errors)
-        print("## ", summary_results)
         if summary_results:
             return APIResponse(
                 success=True,
-                code=206 if errors else 200,  # 206 Partial Content if some errors occurred
-                message="/n".join(errors) if errors else "Summarization successful.",
+                code=(
+                    206 if errors else 200
+                ),  # 206 Partial Content if some errors occurred
+                message="/n".join(errors) if errors else "Summarization successfully.",
                 data=SummaryResponse(
                     status="partial" if errors else "success",
                     summary="\n".join(summary_results),

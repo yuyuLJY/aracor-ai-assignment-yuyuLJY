@@ -1,12 +1,12 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from requests.exceptions import Timeout
 
 from src.models.schemas import APIResponse, SummaryResponse
 from src.services.model_manager import ModelManager
 from src.services.summary import SummaryGenerator
 
-from requests.exceptions import Timeout
 
 def test_generate_summary_partial_failure():
     """
@@ -14,13 +14,15 @@ def test_generate_summary_partial_failure():
     """
     mock_model_manager = MagicMock()
     mock_model_manager.generate_response.side_effect = [
-        "Summary 1",  
-        Timeout("Timeout error"),  
-        "Summary 3", 
+        "Summary 1",
+        Timeout("Timeout error"),
+        "Summary 3",
     ]
 
     summary_generator = SummaryGenerator(mock_model_manager)
-    summary_generator.chunk_text = MagicMock(return_value=["Chunk1.", "Chunk2.", "Chunk3."])
+    summary_generator.chunk_text = MagicMock(
+        return_value=["Chunk1.", "Chunk2.", "Chunk3."]
+    )
 
     text = "Chunk1. Chunk2. Chunk3."
     response = summary_generator.generate_summary(text, "brief")
@@ -33,13 +35,14 @@ def test_generate_summary_partial_failure():
     assert "Summary 3" in response.data.summary
     assert "Timeout error" in response.message
 
+
 def test_generate_summary_chunk_text_runtime_error():
     mock_model_manager = MagicMock(spec=ModelManager)
     summary_generator = SummaryGenerator(mock_model_manager)
     # summary_generator.chunk_text = MagicMock(side_effect=RuntimeError("Chunking failed"))
     # or
     summary_generator.chunk_text = MagicMock()
-    summary_generator.chunk_text.side_effect = RuntimeError("Chunking failed") 
+    summary_generator.chunk_text.side_effect = RuntimeError("Chunking failed")
 
     text = "This is a test text."
     response = summary_generator.generate_summary(text)
@@ -90,7 +93,7 @@ def test_summary_generation(mock_model_manager, summary_type, text):
     # Assertions
     assert isinstance(response, APIResponse)
     assert response.success is True
-    assert response.message == "Summarization successful."
+    assert response.message == "Summarization successfully."
     assert response.data is not None
     assert isinstance(response.data, SummaryResponse)
     assert response.data.summary.startswith("summarization results")
@@ -123,7 +126,6 @@ def test_summary_generation_business_logic(summary_type, text):
     # Assertions
     assert isinstance(response, APIResponse)
     assert response.success is True
-    assert response.message == "Generate summarization successfully"
+    assert response.message == "Summarization successfully."
     assert response.data is not None
     assert isinstance(response.data, SummaryResponse)
-
