@@ -4,7 +4,7 @@ import pytest
 from requests.exceptions import Timeout
 
 from src.models.schemas import APIResponse, SummaryResponse
-from src.services.model_manager import ModelManager
+from src.services.model_manager import ModelManager, Model
 from src.services.summary import SummaryGenerator
 
 
@@ -37,7 +37,7 @@ def test_generate_summary_partial_failure():
 
 
 def test_generate_summary_chunk_text_runtime_error():
-    mock_model_manager = MagicMock(spec=ModelManager)
+    mock_model_manager = MagicMock(spec=Model)
     summary_generator = SummaryGenerator(mock_model_manager)
     # summary_generator.chunk_text = MagicMock(side_effect=RuntimeError("Chunking failed"))
     # or
@@ -119,8 +119,8 @@ def test_summary_generation(mock_model_manager, summary_type, text):
 def test_summary_generation_business_logic(summary_type, text):
     """Test summary generation process with a mocked model response."""
 
-    model_manager = ModelManager().get_model("openai")
-    summarizer = SummaryGenerator(model_manager)
+    model= ModelManager().get_model("openai")
+    summarizer = SummaryGenerator(model)
     response = summarizer.generate_summary(text, summary_type)
 
     # Assertions

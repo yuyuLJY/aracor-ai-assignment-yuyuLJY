@@ -8,7 +8,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from src.config.settings import ConfigSettings
 from src.models.schemas import APIResponse, SummaryResponse
-from src.services.model_manager import ModelManager
+from src.services.model_manager import ModelManager, Model
 from src.utils.my_logging import setup_logger
 
 logger = setup_logger()
@@ -16,8 +16,8 @@ config = ConfigSettings()
 
 
 class SummaryGenerator:
-    def __init__(self, model_manager: ModelManager):
-        self.model_manager = model_manager
+    def __init__(self, model: Model):
+        self.model = model
 
     def chunk_text(self, text: str) -> List[str]:
         # would be better if identify language type
@@ -68,7 +68,7 @@ class SummaryGenerator:
         for chunk in chunks:
             prompt = self.get_prompt(summary_type).format(text=chunk)
             try:
-                response = self.model_manager.generate_response(prompt)
+                response = self.model.generate_response(prompt)
                 # response = f"####### This is the summarization {chunk}"
                 summary_results.append(response)
             except (
