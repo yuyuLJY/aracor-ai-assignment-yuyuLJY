@@ -8,7 +8,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 from src.config.settings import ConfigSettings
 from src.models.schemas import APIResponse, SummaryResponse
-from src.services.model_manager import ModelManager
+from src.services.model_manager import ModelManager, Model
 from src.utils.my_logging import setup_logger
 
 logger = setup_logger()
@@ -16,19 +16,23 @@ config = ConfigSettings()
 
 
 class SummaryGenerator:
-    def __init__(self, model_manager: ModelManager):
-        self.model_manager = model_manager
+    def __init__(self, model: Model):
+        self.model = model
 
     def chunk_text(self, text: str) -> List[str]:
         # would be better if identify language type
-        chunk_size = config.CHUNK_SIZE
-        chunk_overlap = config.CHUNK_OVERLAP
-        splitter = RecursiveCharacterTextSplitter(
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
-            separators=["\n\n", "\n", " ", ""],
-        )
-        return splitter.split_text(text)
+        try:
+            chunk_size = config.CHUNK_SIZE
+            chunk_overlap = config.CHUNK_OVERLAP
+            splitter = RecursiveCharacterTextSplitter(
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+                separators=["\n\n", "\n", " ", ""],
+            )
+            return splitter.split_text(text)
+        except Exception as e:
+            logger.error("Error while chunking text: %s", e)
+            raise e
 
     def get_prompt(self, summary_type: str) -> str:
         # can create PromptManager
@@ -55,15 +59,16 @@ class SummaryGenerator:
             return APIResponse(
                 success=False,
                 code=500,
-                message="Error occurred while chunking text: %s" % e,
+                message=str(e),
                 data=None,
             )
         summary_results = []
+        errors = []
 
         for chunk in chunks:
             prompt = self.get_prompt(summary_type).format(text=chunk)
             try:
-                response = self.model_manager.generate_response(prompt)
+                response = self.model.generate_response(prompt)
                 # response = f"####### This is the summarization {chunk}"
                 summary_results.append(response)
             except (
@@ -73,30 +78,27 @@ class SummaryGenerator:
                 asyncio.TimeoutError,
             ) as e:
                 logger.warning("Timeout occurred: %s. Returning partial results.", e)
-                return APIResponse(
-                    success=True,
-                    code=500,
-                    message=f"Timeout occurred: {e}. Returning partial results.",
-                    data=SummaryResponse(
-                        status="error",  # return partial result, use 'error' to indicate it
-                        summary="\n".join(summary_results),
-                    ),
-                )
+                errors.append(f"Timeout error: {e}")
             except Exception as e:
                 logger.error("Error generating summary: %s", e)
-                return APIResponse(
-                    success=False,
-                    code=500,
-                    message="Error generating summary: %s" % e,
-                    data=None,
-                )
+                errors.append(f"Timeout error: {e}")
 
-        return APIResponse(
-            success=True,
-            code=200,
-            message=f": Generate summarization successfully",
-            data=SummaryResponse(
-                status="success",
-                summary="\n".join(summary_results),
-            ),
-        )
+        if summary_results:
+            return APIResponse(
+                success=True,
+                code=(
+                    206 if errors else 200
+                ),  # 206 Partial Content if some errors occurred
+                message="/n".join(errors) if errors else "Summarization successfully.",
+                data=SummaryResponse(
+                    status="partial" if errors else "success",
+                    summary="\n".join(summary_results),
+                ),
+            )
+        else:
+            return APIResponse(
+                success=False,
+                code=500,
+                message="Error generating summary",
+                data=None,
+            )

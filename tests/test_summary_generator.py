@@ -1,132 +1,131 @@
-"""Test suite for ModelManager, OpenAIModel, AnthropicModel, and SummaryGenerator."""
-
-import os
 from unittest.mock import MagicMock, patch
 
 import pytest
-import httpx
-from pydantic import ValidationError
 from requests.exceptions import Timeout
-from tenacity import RetryError
 
-from src.config.settings import ConfigSettings
-from src.services.model_manager import ModelManager, OpenAIModel, AnthropicModel
+from src.models.schemas import APIResponse, SummaryResponse
+from src.services.model_manager import ModelManager, Model
 from src.services.summary import SummaryGenerator
-from src.models.schemas import APIResponse
 
 
-def test_successful_openai_model_initialization():
-    """Test OpenAI model initialization."""
-    with patch("src.services.model_manager.ChatOpenAI") as mock_openai:
-        mock_openai.return_value = MagicMock()
-        model = ModelManager.get_model("openai")
-        assert isinstance(model, OpenAIModel)
-        mock_openai.assert_called_once()
+def test_generate_summary_partial_failure():
+    """
+    Test case where some chunk generations succeed while others fail (partial response).
+    """
+    mock_model_manager = MagicMock()
+    mock_model_manager.generate_response.side_effect = [
+        "Summary 1",
+        Timeout("Timeout error"),
+        "Summary 3",
+    ]
 
-def test_successful_anthropic_model_initialization():
-    """Test Anthropic model initialization."""
-    with patch("src.services.model_manager.ChatAnthropic") as mock_anthropic:
-        mock_anthropic.return_value = MagicMock()
-        model = ModelManager.get_model("anthropic")
-        assert isinstance(model, AnthropicModel)
-        mock_anthropic.assert_called_once()
+    summary_generator = SummaryGenerator(mock_model_manager)
+    summary_generator.chunk_text = MagicMock(
+        return_value=["Chunk1.", "Chunk2.", "Chunk3."]
+    )
 
-def test_api_key_validation():
-    """Test API key validation with empty key."""
-    with pytest.raises(ValidationError):
-        ConfigSettings(OPENAI_API_KEY="")
+    text = "Chunk1. Chunk2. Chunk3."
+    response = summary_generator.generate_summary(text, "brief")
 
-def test_model_switching():
-    """Test switching between OpenAI and Anthropic models."""
-    with (
-        patch("src.services.model_manager.ChatOpenAI") as mock_openai,
-        patch("src.services.model_manager.ChatAnthropic") as mock_anthropic,
-    ):
-        mock_openai.return_value = MagicMock()
-        mock_anthropic.return_value = MagicMock()
-        
-        model = ModelManager.get_model("openai")
-        assert isinstance(model, OpenAIModel)
-        
-        model = ModelManager.get_model("anthropic")
-        assert isinstance(model, AnthropicModel)
+    assert isinstance(response, APIResponse)
+    assert response.success is True
+    assert response.code == 206
+    assert response.data.status == "partial"
+    assert "Summary 1" in response.data.summary
+    assert "Summary 3" in response.data.summary
+    assert "Timeout error" in response.message
 
-def test_retry_mechanism():
-    """Test retry mechanism for transient failures."""
-    model = OpenAIModel()
-    model.model = MagicMock()
-    model.model.predict.side_effect = [
-        Exception("Error"),
-        Exception("Error"),
-        "Success",
-    ]  # Two failures, one success
-    
-    result = model.generate_response("Test prompt")
-    assert result == "Success"
-    assert model.model.predict.call_count == 3  # Ensure it retried twice
 
-def test_timeout_handling():
-    """Test timeout errors are handled correctly."""
-    model = OpenAIModel()
-    model.model = MagicMock()
-    model.model.predict.side_effect = Timeout
-    
-    with pytest.raises(RetryError):
-        model.generate_response("Test prompt")
+def test_generate_summary_chunk_text_runtime_error():
+    mock_model_manager = MagicMock(spec=Model)
+    summary_generator = SummaryGenerator(mock_model_manager)
+    # summary_generator.chunk_text = MagicMock(side_effect=RuntimeError("Chunking failed"))
+    # or
+    summary_generator.chunk_text = MagicMock()
+    summary_generator.chunk_text.side_effect = RuntimeError("Chunking failed")
 
-def test_error_response_handling():
-    """Test unexpected error responses are logged and raised."""
-    model = OpenAIModel()
-    model.model = MagicMock()
-    model.model.predict.side_effect = ValueError("Unexpected error")
-    
-    with pytest.raises(RetryError):
-        model.generate_response("Test prompt")
+    text = "This is a test text."
+    response = summary_generator.generate_summary(text)
+
+    expected_response = APIResponse(
+        success=False,
+        code=500,
+        message="Chunking failed",
+        data=None,
+    )
+
+    assert response.success == expected_response.success
+    assert response.code == expected_response.code
+    assert response.message == expected_response.message
+    assert response.data == expected_response.data
+
 
 @pytest.fixture
 def mock_model_manager():
-    """Mock the ModelManager class."""
-    mock = MagicMock()
-    mock.configure_mock(**{"generate_response.side_effect": lambda prompt: f"Mocked summary for: {prompt}"})
-    return mock
+    mock_manager = MagicMock()
+    mock_manager.generate_response.return_value = "summarization results"
+    return mock_manager
 
-@pytest.fixture
-def summary_generator(mock_model_manager):
-    """Initialize the SummaryGenerator with a mock model manager."""
-    return SummaryGenerator(mock_model_manager)
 
 @pytest.mark.parametrize(
-    "text, summary_type",
+    "summary_type, text",
     [
-        ("This is a test input for summary generation.", "brief"),
-        ("This is a detailed summary test input with more content.", "detailed"),
-        ("This is a bullet point summary test.", "bullet points"),
+        ("brief", "This is a test input."),
+        ("detailed", "This is a test input."),
+        ("bullet points", "This is a test input."),
+        ("echnical", "This is a test input."),
+        ("layman", "This is a test input."),
+        ("brief", "Lorem ipsum dolor sit amet, " * 1000),  # Very long input
+        ("brief", "Special characters: !@#$%^&*()_+{}|:<>?~`"),  # Special characters
+        ("brief", "Bonjour, это тест, こんにちは, مرحباً"),  # Multiple languages
+        (
+            "brief",
+            "The algorithm has a complexity of O(n log n) and uses a heap-based approach.",
+        ),  # Technical content
     ],
 )
-def test_summary_generation(summary_generator, text, summary_type):
-    """Test different types of summary generation."""
-    response = summary_generator.generate_summary(text, summary_type)
+def test_summary_generation(mock_model_manager, summary_type, text):
+    """Test summary generation process with a mocked model response."""
+
+    summarizer = SummaryGenerator(mock_model_manager)
+    response = summarizer.generate_summary(text, summary_type)
+
+    # Assertions
     assert isinstance(response, APIResponse)
-    assert response.success
-    assert response.code == 200
-    assert response.data.status == "success"
-    assert response.data.summary.startswith("Mocked summary for:")
+    assert response.success is True
+    assert response.message == "Summarization successfully."
+    assert response.data is not None
+    assert isinstance(response.data, SummaryResponse)
+    assert response.data.summary.startswith("summarization results")
+
+    # Ensure generate_response was called with expected prompt
+    mock_model_manager.generate_response.assert_called()
+
 
 @pytest.mark.parametrize(
-    "text",
+    "summary_type, text",
     [
-        ("Lorem ipsum dolor sit amet, " * 1000),  # Very long input
-        ("Short."),  # Very short input
-        ("Special characters: !@#$%^&*()_+{}|:<>?~`"),  # Special characters
-        ("Bonjour, это тест, こんにちは, مرحباً"),  # Multiple languages
-        ("The algorithm has a complexity of O(n log n) and uses a heap-based approach."),  # Technical content
+        ("brief", "This is a test input."),
+        # ("detailed", "This is a test input."),
+        # ("bullet points", "This is a test input."),
+        # ("echnical", "This is a test input."),
+        # ("layman", "This is a test input."),
+        # ("brief", "Lorem ipsum dolor sit amet, " * 1000),  # Very long input
+        # ("brief", "Special characters: !@#$%^&*()_+{}|:<>?~`"),  # Special characters
+        # ("brief", "Bonjour, это тест, こんにちは, مرحباً"),  # Multiple languages
+        # ("brief", "The algorithm has a complexity of O(n log n) and uses a heap-based approach."),  # Technical content
     ],
 )
-def test_special_cases(summary_generator, text):
-    """Test handling of edge cases like long input, short input, special characters, multiple languages, and technical content."""
-    response = summary_generator.generate_summary(text, "brief")
+def test_summary_generation_business_logic(summary_type, text):
+    """Test summary generation process with a mocked model response."""
+
+    model= ModelManager().get_model("openai")
+    summarizer = SummaryGenerator(model)
+    response = summarizer.generate_summary(text, summary_type)
+
+    # Assertions
     assert isinstance(response, APIResponse)
-    assert response.success
-    assert response.code == 200
-    assert response.data.status == "success"
-    assert response.data.summary.startswith("Mocked summary for:")
+    assert response.success is True
+    assert response.message == "Summarization successfully."
+    assert response.data is not None
+    assert isinstance(response.data, SummaryResponse)

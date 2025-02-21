@@ -15,7 +15,7 @@ Success Response
   "code": 200,
   "message": "Text extracted successfully",
   "data": {
-    "file_path": "path/to/file",
+    "file_path": "path/to/file/P18.pdf",
     "file_type": "pdf",
     "content": "Extracted text..."
   }
@@ -23,6 +23,14 @@ Success Response
 ```
 
 Failure Response
+```json
+{
+  "success": false,
+  "code": 400,
+  "message": "Unsupported file format. Only PDF, TXT, and DOCX are allowed.",
+  "data": null
+}
+```
 
 ```json
 {
@@ -56,6 +64,17 @@ Success Response
   }
 }
 ```
+```json
+{
+  "success": true,
+  "code": 206,
+  "message": "Timeout occurred: [error details]. Returning partial results.",
+  "data": {
+    "status": "partial",
+    "summary": "Partial summary result..."
+  }
+}
+```
 
 Failure Response
 ```json
@@ -64,18 +83,6 @@ Failure Response
   "code": 500,
   "message": "Error generating summary",
   "data": null
-}
-```
-
-```json
-{
-  "success": true,
-  "code": 500,
-  "message": "Timeout occurred: [error details]. Returning partial results.",
-  "data": {
-    "status": "error",
-    "summary": "Partial summary result..."
-  }
 }
 ```
 

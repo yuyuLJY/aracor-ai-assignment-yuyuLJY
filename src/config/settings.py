@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-load_dotenv()
+load_dotenv(override=True)
 
 
 class ConfigSettings(BaseSettings):
@@ -14,8 +14,8 @@ class ConfigSettings(BaseSettings):
     ANTHROPIC_API_KEY: SecretStr
 
     # Rate Limiter Configuration
-    REQUESTS_PER_SECOND: float = 0.05
-    CHECK_EVERY_N_SECONDS: float = 0.1
+    REQUESTS_PER_SECOND: float = 1
+    CHECK_EVERY_N_SECONDS: float = 1
     MAX_BUCKET_SIZE: int = 10
 
     # Text Splitting Configuration
